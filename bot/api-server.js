@@ -5,16 +5,23 @@
 const http = require('http');
 const store = require('./orders-store');
 
-function send(res, status, body) {
-  res.writeHead(status, {
+function corsHeaders(req) {
+  return {
     'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
+    // Reflect the actual request origin (rather than "*") — Chrome's Private
+    // Network Access check requires a concrete origin, a wildcard is not enough.
+    'Access-Control-Allow-Origin': req.headers.origin || '*',
+    'Vary': 'Origin',
     'Access-Control-Allow-Methods': 'GET, PATCH, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
-    // Chrome's Private Network Access: lets a public HTTPS page (GitHub Pages)
-    // call this local server. Safe here since the server only runs on localhost.
+    // Lets a public HTTPS page (GitHub Pages) call this local server.
+    // Safe here since the server only runs on localhost.
     'Access-Control-Allow-Private-Network': 'true'
-  });
+  };
+}
+
+function send(req, res, status, body) {
+  res.writeHead(status, corsHeaders(req));
   res.end(JSON.stringify(body));
 }
 
@@ -23,11 +30,11 @@ function startApiServer(port, onStatusChange) {
     const url = new URL(req.url, `http://localhost:${port}`);
 
     if (req.method === 'OPTIONS') {
-      return send(res, 204, {});
+      return send(req, res, 204, {});
     }
 
     if (req.method === 'GET' && url.pathname === '/api/orders') {
-      return send(res, 200, store.loadAll());
+      return send(req, res, 200, store.loadAll());
     }
 
     const patchMatch = url.pathname.match(/^\/api\/orders\/(\d+)$/);
@@ -39,20 +46,20 @@ function startApiServer(port, onStatusChange) {
           const { status } = JSON.parse(body || '{}');
           const validStatuses = ['yangi', 'tayyorlanmoqda', 'tayyor', 'yetkazildi'];
           if (!validStatuses.includes(status)) {
-            return send(res, 400, { error: "Noto'g'ri status" });
+            return send(req, res, 400, { error: "Noto'g'ri status" });
           }
           const updated = store.updateStatus(Number(patchMatch[1]), status);
-          if (!updated) return send(res, 404, { error: 'Buyurtma topilmadi' });
+          if (!updated) return send(req, res, 404, { error: 'Buyurtma topilmadi' });
           if (onStatusChange) await onStatusChange(updated);
-          return send(res, 200, updated);
+          return send(req, res, 200, updated);
         } catch (e) {
-          return send(res, 500, { error: e.message });
+          return send(req, res, 500, { error: e.message });
         }
       });
       return;
     }
 
-    send(res, 404, { error: 'Not found' });
+    send(req, res, 404, { error: 'Not found' });
   });
 
   server.on('error', (err) => {
