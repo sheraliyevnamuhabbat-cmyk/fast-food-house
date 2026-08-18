@@ -591,12 +591,28 @@ async function fetchOrders() {
     const orders = await res.json();
     renderOrdersList(orders);
   } catch (e) {
-    list.innerHTML = `
+    const isLocal = location.protocol === 'file:' || location.hostname === 'localhost';
+    list.innerHTML = isLocal ? `
       <div class="admin-card">
         <h2>Buyurtmalar serveriga ulanib bo'lmadi</h2>
         <p class="admin-card-sub">
-          Bot ishga tushirilganligiga ishonch hosil qiling: <code>bot</code> papkasida <code>node bot.js</code> buyrug'ini bering.
-          Buyurtmalar bot orqali qabul qilinadi va shu server orqali admin panelga ko'rsatiladi (${esc(ORDERS_API)}).
+          Bot ishga tushirilmagan ko'rinadi. <code>bot</code> papkasidagi <code>start-bot.bat</code> faylini ikki marta bosing
+          (yoki terminalda <code>bot</code> papkasida <code>node bot.js</code> buyrug'ini bering) va oynani ochiq qoldiring, so'ng
+          "Yangilash" tugmasini bosing.
+        </p>
+      </div>
+    ` : `
+      <div class="admin-card">
+        <h2>⚠️ Buyurtmalar shu yerdan ko'rinmaydi</h2>
+        <p class="admin-card-sub">
+          Siz admin panelni <b>internet orqali (GitHub Pages)</b> ochyapsiz. Xavfsizlik sabablariga ko'ra brauzer
+          bunday sahifalarga kompyuteringizdagi lokal serverga ulanishni bloklaydi — shuning uchun buyurtmalar bu yerda ko'rinmaydi.
+        </p>
+        <p class="admin-card-sub">
+          <b>Yechim:</b> Buyurtmalarni boshqarish uchun admin panelni <b>kompyuteringizdagi fayldan</b> oching:<br>
+          <code>C:\\Users\\User\\Desktop\\food\\admin.html</code><br>
+          (yoki <code>food</code> papkasidagi <code>open-admin.bat</code> faylini ikki marta bosing). Bot esa
+          <code>bot\\start-bot.bat</code> orqali ishga tushirilgan bo'lishi kerak.
         </p>
       </div>
     `;

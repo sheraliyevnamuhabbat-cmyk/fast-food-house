@@ -1,0 +1,3 @@
+@echo off
+echo Admin panel ochilmoqda...
+start "" "%~dp0admin.html"
