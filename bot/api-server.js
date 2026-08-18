@@ -10,7 +10,10 @@ function send(res, status, body) {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, PATCH, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type'
+    'Access-Control-Allow-Headers': 'Content-Type',
+    // Chrome's Private Network Access: lets a public HTTPS page (GitHub Pages)
+    // call this local server. Safe here since the server only runs on localhost.
+    'Access-Control-Allow-Private-Network': 'true'
   });
   res.end(JSON.stringify(body));
 }
@@ -50,6 +53,14 @@ function startApiServer(port, onStatusChange) {
     }
 
     send(res, 404, { error: 'Not found' });
+  });
+
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`Port ${port} band. Buyurtmalar API ishga tushmadi (boshqa bot nusxasi ishlamayaptimi, tekshiring).`);
+    } else {
+      console.error('Buyurtmalar API xatosi:', err.message);
+    }
   });
 
   server.listen(port, () => {
