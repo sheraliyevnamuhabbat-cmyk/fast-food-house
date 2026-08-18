@@ -58,7 +58,9 @@ function formatPrice(n) {
 function buildOrderSummary(order, from) {
   const lines = order.items.map(it => `• ${it.name} × ${it.qty} — ${formatPrice(it.price * it.qty)}`);
   const who = from ? `\n👤 ${[from.first_name, from.last_name].filter(Boolean).join(' ')}${from.username ? ' (@' + from.username + ')' : ''}` : '';
-  return `${lines.join('\n')}\n\n💰 Jami: *${formatPrice(order.total)}*${who}`;
+  const contact = order.phone ? `\n📞 ${order.phone}` : '';
+  const address = order.address ? `\n📍 ${order.address}` : '';
+  return `${lines.join('\n')}\n\n💰 Jami: *${formatPrice(order.total)}*${contact}${address}${who}`;
 }
 
 async function handleOrder(msg) {

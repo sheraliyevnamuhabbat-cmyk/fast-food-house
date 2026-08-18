@@ -332,6 +332,39 @@ function renderCartPanel() {
   `;
 }
 
+const CUSTOMER_KEY = 'ffh_customer_v1';
+function loadCustomer() {
+  try {
+    const raw = localStorage.getItem(CUSTOMER_KEY);
+    return raw ? JSON.parse(raw) : { phone: '', address: '' };
+  } catch (e) { return { phone: '', address: '' }; }
+}
+function saveCustomer(c) {
+  localStorage.setItem(CUSTOMER_KEY, JSON.stringify(c));
+}
+
+function renderCheckoutForm() {
+  const saved = loadCustomer();
+  cartFootEl.innerHTML = `
+    <div class="checkout-form">
+      <div class="checkout-field">
+        <label>Telefon raqamingiz</label>
+        <input type="tel" id="orderPhone" placeholder="+998 90 123 45 67" value="${esc(saved.phone)}">
+      </div>
+      <div class="checkout-field">
+        <label>Yetkazib berish manzili</label>
+        <textarea id="orderAddress" placeholder="Shahar, tuman, ko'cha, uy raqami...">${esc(saved.address)}</textarea>
+      </div>
+      <div class="checkout-error" id="checkoutError"></div>
+      <div class="checkout-total-row"><span>Jami</span><span class="cart-total-amount">${formatPrice(cartTotal())}</span></div>
+      <div class="checkout-actions">
+        <button class="btn btn-outline-dark" id="checkoutBack">← Orqaga</button>
+        <button class="btn btn-gold" id="checkoutConfirm">Tasdiqlash</button>
+      </div>
+    </div>
+  `;
+}
+
 function openCart() {
   renderCartPanel();
   cartOverlay?.classList.add('show');
@@ -354,14 +387,42 @@ cartItemsEl?.addEventListener('click', (e) => {
 });
 
 cartFootEl?.addEventListener('click', (e) => {
-  if (e.target.closest('#checkoutBtn')) submitOrder();
+  if (e.target.closest('#checkoutBtn')) renderCheckoutForm();
+  else if (e.target.closest('#checkoutBack')) renderCartPanel();
+  else if (e.target.closest('#checkoutConfirm')) confirmCheckout();
 });
 
-function submitOrder() {
+function confirmCheckout() {
+  const phoneInput = document.getElementById('orderPhone');
+  const addressInput = document.getElementById('orderAddress');
+  const errorEl = document.getElementById('checkoutError');
+  const phone = phoneInput.value.trim();
+  const address = addressInput.value.trim();
+
+  const phoneDigits = phone.replace(/[^\d]/g, '');
+  if (phoneDigits.length < 9) {
+    errorEl.textContent = "Iltimos, to'g'ri telefon raqam kiriting.";
+    phoneInput.focus();
+    return;
+  }
+  if (address.length < 5) {
+    errorEl.textContent = 'Iltimos, yetkazib berish manzilini kiriting.';
+    addressInput.focus();
+    return;
+  }
+  errorEl.textContent = '';
+
+  saveCustomer({ phone, address });
+  submitOrder(phone, address);
+}
+
+function submitOrder(phone, address) {
   if (!cart.length) return;
   const order = {
     items: cart.map(c => ({ name: c.name, qty: c.qty, price: c.price })),
     total: cartTotal(),
+    phone,
+    address,
     ts: new Date().toISOString()
   };
 
@@ -377,8 +438,8 @@ function submitOrder() {
   } else {
     cartFootEl.innerHTML = `
       <div class="cart-confirm">
-        ✅ Buyurtmangiz qabul qilindi!<br>
-        <small>Buyurtmani to'g'ridan-to'g'ri yuborish uchun saytni bizning Telegram botimiz orqali oching.</small>
+        ✅ Buyurtmangiz rasmiylashtirildi!<br>
+        <small>${esc(phone)} raqamiga va "${esc(address)}" manziliga tez orada bog'lanamiz.<br><br>Buyurtmani to'g'ridan-to'g'ri yuborish uchun saytni bizning Telegram botimiz orqali oching.</small>
       </div>
     `;
     cart = [];
