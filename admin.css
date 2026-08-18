@@ -210,6 +210,21 @@ body.admin-body{background:var(--gray-bg);}
 }
 .admin-cat-row b{color:var(--gold-dark);}
 
+/* ---- Orders ---- */
+.order-card{padding:20px 22px;}
+.order-card-head{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid rgba(20,15,5,.08);
+}
+.order-card-head strong{font-size:15px;margin-right:10px;}
+.order-card-body{display:grid;grid-template-columns:1.2fr 1fr;gap:20px;}
+.order-card-items{font-size:13px;line-height:1.9;color:#3a352c;}
+.order-card-meta{font-size:13px;line-height:2;color:#3a352c;}
+.order-card-meta b{margin-right:4px;}
+.order-card-total{margin-top:6px;font-size:14px;}
+.order-card-total b{color:var(--gold-dark);}
+@media (max-width:700px){.order-card-body{grid-template-columns:1fr;}}
+
 /* ---- Menu table ---- */
 .admin-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:12px;flex-wrap:wrap;}
 .admin-toolbar select{

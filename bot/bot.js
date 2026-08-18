@@ -4,6 +4,8 @@
 
 const fs = require('fs');
 const path = require('path');
+const store = require('./orders-store');
+const { startApiServer } = require('./api-server');
 
 const configPath = path.join(__dirname, 'config.json');
 if (!fs.existsSync(configPath)) {
@@ -24,7 +26,15 @@ if (!SITE_URL || SITE_URL.includes('YOUR_SITE_URL')) {
   process.exit(1);
 }
 
+const API_PORT = config.apiPort || 4000;
 const API = `https://api.telegram.org/bot${TOKEN}`;
+
+const STATUS_LABEL = {
+  yangi: '🆕 Yangi',
+  tayyorlanmoqda: '👨‍🍳 Tayyorlanmoqda',
+  tayyor: '✅ Tayyor',
+  yetkazildi: '🚚 Yetkazildi'
+};
 
 async function call(method, params) {
   const res = await fetch(`${API}/${method}`, {
@@ -65,28 +75,67 @@ function buildOrderSummary(order, from) {
 
 async function handleOrder(msg) {
   const chatId = msg.chat.id;
-  let order;
+  let parsed;
   try {
-    order = JSON.parse(msg.web_app_data.data);
+    parsed = JSON.parse(msg.web_app_data.data);
   } catch (e) {
     await call('sendMessage', { chat_id: chatId, text: "Buyurtmani o'qishda xatolik yuz berdi." });
     return;
   }
-  if (!order.items || !order.items.length) return;
+  if (!parsed.items || !parsed.items.length) return;
+
+  const saved = store.addOrder({
+    chatId,
+    customerName: [msg.from.first_name, msg.from.last_name].filter(Boolean).join(' '),
+    username: msg.from.username || '',
+    items: parsed.items,
+    total: parsed.total,
+    phone: parsed.phone || '',
+    address: parsed.address || ''
+  });
 
   await call('sendMessage', {
     chat_id: chatId,
-    text: `✅ *Buyurtmangiz qabul qilindi!*\n\n${buildOrderSummary(order)}\n\nTez orada siz bilan bog'lanamiz. Rahmat! 🙏`,
+    text: `✅ *Buyurtmangiz qabul qilindi!*\n\n${buildOrderSummary(saved)}\n\nHoloti: ${STATUS_LABEL.yangi}\nBuyurtma raqami: #${saved.id}\n\nHolatni kuzatish uchun: /buyurtmalarim`,
     parse_mode: 'Markdown'
   });
 
   if (config.adminChatId) {
     await call('sendMessage', {
       chat_id: config.adminChatId,
-      text: `🆕 *Yangi buyurtma!*\n\n${buildOrderSummary(order, msg.from)}`,
+      text: `🆕 *Yangi buyurtma!* #${saved.id}\n\n${buildOrderSummary(saved, msg.from)}`,
       parse_mode: 'Markdown'
     });
   }
+}
+
+async function handleMyOrders(chatId) {
+  const orders = store.getByChat(chatId).sort((a, b) => b.id - a.id);
+  if (!orders.length) {
+    await call('sendMessage', { chat_id: chatId, text: "Sizda hali buyurtmalar yo'q. Menyudan tanlab, buyurtma bering! 🍔" });
+    return;
+  }
+  const blocks = orders.slice(0, 10).map(o => {
+    const itemsLine = o.items.map(it => `${it.name} ×${it.qty}`).join(', ');
+    const date = new Date(o.createdAt).toLocaleString('uz-UZ', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return `#${o.id} — ${STATUS_LABEL[o.status] || o.status}\n${itemsLine}\nJami: ${formatPrice(o.total)}\n${date}`;
+  });
+  await call('sendMessage', {
+    chat_id: chatId,
+    text: `📦 *Sizning buyurtmalaringiz:*\n\n${blocks.join('\n\n')}`,
+    parse_mode: 'Markdown'
+  });
+}
+
+async function notifyStatusChange(order) {
+  if (order.status === 'yangi') return;
+  const messages = {
+    tayyorlanmoqda: `👨‍🍳 Buyurtmangiz (#${order.id}) tayyorlanmoqda!`,
+    tayyor: `✅ Buyurtmangiz (#${order.id}) tayyor! Tez orada yetkaziladi.`,
+    yetkazildi: `🚚 Buyurtmangiz (#${order.id}) yetkazib berildi. Yoqimli ishtaha! 😋\n\nBuyurtma tarixingizni /buyurtmalarim orqali ko'rishingiz mumkin.`
+  };
+  const text = messages[order.status];
+  if (text) await call('sendMessage', { chat_id: order.chatId, text });
 }
 
 async function handleUpdate(update) {
@@ -112,10 +161,12 @@ async function handleUpdate(update) {
       text: `Sizning chat ID'ingiz: \`${chatId}\`\n\nBuyurtma bildirishnomalarini shu chatga olish uchun ushbu ID'ni bot/config.json faylidagi "adminChatId" maydoniga qo'ying.`,
       parse_mode: 'Markdown'
     });
+  } else if (text === '/buyurtmalarim') {
+    await handleMyOrders(chatId);
   } else if (text === '/help') {
     await call('sendMessage', {
       chat_id: chatId,
-      text: "/start — menyuni ochish\n/menu — menyuni qayta ko'rsatish\n/myid — chat ID'ingizni olish"
+      text: "/start — menyuni ochish\n/menu — menyuni qayta ko'rsatish\n/buyurtmalarim — buyurtmalar tarixi\n/myid — chat ID'ingizni olish"
     });
   } else {
     await sendMenu(chatId);
@@ -140,4 +191,5 @@ async function poll() {
 
 console.log('Fast Food House bot ishga tushdi. To\'xtatish uchun Ctrl+C.');
 console.log('Sayt manzili:', SITE_URL);
+startApiServer(API_PORT, notifyStatusChange);
 poll();

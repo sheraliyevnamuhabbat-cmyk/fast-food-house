@@ -11,6 +11,8 @@ function esc(str) {
 let data = getSiteData();
 let activeTab = 'overview';
 let editingMenuId = null;
+const ORDERS_API = 'http://localhost:4000';
+let ordersPollTimer = null;
 
 /* ================= AUTH ================= */
 const loginScreen = document.getElementById('loginScreen');
@@ -82,6 +84,7 @@ document.getElementById('resetBtn').addEventListener('click', () => {
 /* ================= NAV / TABS ================= */
 const TAB_TITLES = {
   overview: "Umumiy ko'rinish",
+  orders: 'Buyurtmalar',
   hero: 'Bosh ekran',
   features: 'Xususiyatlar',
   menu: 'Menyu boshqaruvi',
@@ -100,9 +103,11 @@ document.getElementById('adminNav').addEventListener('click', (e) => {
 });
 
 function renderTab(tab) {
+  stopOrdersPolling();
   document.getElementById('tabTitle').textContent = TAB_TITLES[tab];
   const map = {
     overview: renderOverview,
+    orders: renderOrdersTab,
     hero: renderHeroTab,
     features: renderFeaturesTab,
     menu: renderMenuTab,
@@ -530,4 +535,127 @@ function renderFooterTab() {
     };
     persist('Footer yangilandi');
   });
+}
+
+/* ================= ORDERS ================= */
+const ORDER_STATUS_FLOW = ['yangi', 'tayyorlanmoqda', 'tayyor', 'yetkazildi'];
+const ORDER_STATUS_LABEL = {
+  yangi: "🆕 Yangi",
+  tayyorlanmoqda: "👨‍🍳 Tayyorlanmoqda",
+  tayyor: "✅ Tayyor",
+  yetkazildi: "🚚 Yetkazildi"
+};
+const ORDER_NEXT_ACTION_LABEL = {
+  yangi: "Tayyorlashni boshlash →",
+  tayyorlanmoqda: "Tayyor deb belgilash →",
+  tayyor: "Yetkazildi deb belgilash →"
+};
+
+function stopOrdersPolling() {
+  if (ordersPollTimer) {
+    clearInterval(ordersPollTimer);
+    ordersPollTimer = null;
+  }
+}
+
+function renderOrdersTab() {
+  const content = document.getElementById('tabContent');
+  content.innerHTML = `
+    <div class="admin-toolbar">
+      <select id="ordersStatusFilter">
+        <option value="all">Barcha holatlar</option>
+        <option value="yangi">🆕 Yangi</option>
+        <option value="tayyorlanmoqda">👨‍🍳 Tayyorlanmoqda</option>
+        <option value="tayyor">✅ Tayyor</option>
+        <option value="yetkazildi">🚚 Yetkazildi</option>
+      </select>
+      <button class="btn btn-outline-dark" id="ordersRefreshBtn">↻ Yangilash</button>
+    </div>
+    <div id="ordersList"></div>
+  `;
+
+  document.getElementById('ordersStatusFilter').addEventListener('change', () => fetchOrders());
+  document.getElementById('ordersRefreshBtn').addEventListener('click', () => fetchOrders());
+
+  fetchOrders();
+  stopOrdersPolling();
+  ordersPollTimer = setInterval(fetchOrders, 8000);
+}
+
+async function fetchOrders() {
+  const list = document.getElementById('ordersList');
+  if (!list) return;
+  try {
+    const res = await fetch(`${ORDERS_API}/api/orders`);
+    if (!res.ok) throw new Error('API xatosi');
+    const orders = await res.json();
+    renderOrdersList(orders);
+  } catch (e) {
+    list.innerHTML = `
+      <div class="admin-card">
+        <h2>Buyurtmalar serveriga ulanib bo'lmadi</h2>
+        <p class="admin-card-sub">
+          Bot ishga tushirilganligiga ishonch hosil qiling: <code>bot</code> papkasida <code>node bot.js</code> buyrug'ini bering.
+          Buyurtmalar bot orqali qabul qilinadi va shu server orqali admin panelga ko'rsatiladi (${esc(ORDERS_API)}).
+        </p>
+      </div>
+    `;
+  }
+}
+
+function renderOrdersList(orders) {
+  const filter = document.getElementById('ordersStatusFilter')?.value || 'all';
+  const list = document.getElementById('ordersList');
+  const filtered = orders.filter(o => filter === 'all' || o.status === filter);
+
+  if (!filtered.length) {
+    list.innerHTML = `<div class="admin-card"><p class="admin-card-sub">Bu holatda buyurtmalar yo'q.</p></div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(o => {
+    const itemsHtml = o.items.map(it => `<div>${esc(it.name)} × ${it.qty} — ${formatPrice(it.price * it.qty)}</div>`).join('');
+    const date = new Date(o.createdAt).toLocaleString('uz-UZ');
+    const nextLabel = ORDER_NEXT_ACTION_LABEL[o.status];
+    return `
+      <div class="admin-card order-card">
+        <div class="order-card-head">
+          <div>
+            <strong>#${o.id}</strong>
+            <span class="cat-tag">${ORDER_STATUS_LABEL[o.status] || o.status}</span>
+          </div>
+          <span class="admin-card-sub">${date}</span>
+        </div>
+        <div class="order-card-body">
+          <div class="order-card-items">${itemsHtml}</div>
+          <div class="order-card-meta">
+            <div><b>👤</b> ${esc(o.customerName || 'Noma\'lum')}${o.username ? ' (@' + esc(o.username) + ')' : ''}</div>
+            <div><b>📞</b> ${esc(o.phone || '—')}</div>
+            <div><b>📍</b> ${esc(o.address || '—')}</div>
+            <div class="order-card-total"><b>Jami:</b> ${formatPrice(o.total)}</div>
+          </div>
+        </div>
+        ${nextLabel ? `<div class="admin-save-row"><button class="btn btn-gold" data-advance="${o.id}" data-next="${ORDER_STATUS_FLOW[ORDER_STATUS_FLOW.indexOf(o.status) + 1]}">${nextLabel}</button></div>` : ''}
+      </div>
+    `;
+  }).join('');
+
+  list.querySelectorAll('[data-advance]').forEach(btn => {
+    btn.addEventListener('click', () => advanceOrderStatus(Number(btn.dataset.advance), btn.dataset.next));
+  });
+}
+
+async function advanceOrderStatus(id, status) {
+  try {
+    const res = await fetch(`${ORDERS_API}/api/orders/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    });
+    if (!res.ok) throw new Error('Yangilab bo\'lmadi');
+    showToast(`Buyurtma #${id} — ${ORDER_STATUS_LABEL[status]}`);
+    fetchOrders();
+  } catch (e) {
+    showToast("Xatolik: buyurtma serveriga ulanib bo'lmadi");
+  }
 }
