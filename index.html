@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fast Food House — Tezkor va Mazali Taomlar</title>
+<link rel="icon" href="image/pic.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<header>
+  <div class="header-inner">
+    <a href="#" class="brand">
+      <img src="image/pic.png" alt="Fast Food House logo">
+      <div class="brand-text" id="headerBrandText">
+        <strong>FAST FOOD HOUSE</strong>
+        <span>TEZKOR &amp; MAZALI</span>
+      </div>
+    </a>
+
+    <nav class="main-nav" id="mainNav">
+      <ul>
+        <li><a href="#" class="active">BOSH SAHIFA</a></li>
+        <li><a href="#menu">MENYU</a></li>
+        <li><a href="#about">BIZ HAQIMIZDA</a></li>
+        <li><a href="#locations">MANZILLAR</a></li>
+        <li><a href="#combo">YETKAZIB BERISH</a></li>
+        <li><a href="#footer">ALOQA</a></li>
+      </ul>
+    </nav>
+
+    <div class="header-cta">
+      <a href="#menu" class="btn btn-gold">
+        <span class="long">🛍️</span> BUYURTMA BERISH
+      </a>
+      <button class="burger-toggle" id="burgerToggle" aria-label="Menyu">☰</button>
+    </div>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="container hero-inner">
+    <div class="hero-copy" id="heroCopy"></div>
+    <div class="hero-media reveal reveal-scale" id="heroMedia" style="--d:.2s"></div>
+  </div>
+</section>
+
+<section class="feature-strip">
+  <div class="container" id="featureStrip"></div>
+</section>
+
+<section class="menu-section" id="menu">
+  <div class="container">
+    <div class="menu-head menu-head-center reveal">
+      <div>
+        <span class="eyebrow">Bizning menyu</span>
+        <h2>TO'LIQ MENYU<span class="underline"></span></h2>
+      </div>
+    </div>
+
+    <div class="category-pills reveal" style="--d:.1s" id="categoryPills"></div>
+
+    <div class="menu-grid" id="menuGrid"></div>
+  </div>
+</section>
+
+<section id="combo">
+  <div class="split-promo">
+    <div class="promo-panel promo-dark reveal reveal-left" id="promoCombo"></div>
+    <div class="promo-panel promo-gold reveal reveal-right" id="about"></div>
+  </div>
+</section>
+
+<footer id="footer">
+  <div class="container">
+    <div class="footer-grid" id="footerGrid"></div>
+    <div class="footer-bottom" id="footerBottom"></div>
+  </div>
+</footer>
+
+<div id="toast"><span class="dot"></span><span id="toastText">Savatga qo'shildi</span></div>
+
+<button id="backToTop" aria-label="Yuqoriga qaytish">↑</button>
+
+<script src="data.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

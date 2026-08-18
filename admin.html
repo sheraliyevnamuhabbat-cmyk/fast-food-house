@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel — Fast Food House</title>
+<link rel="icon" href="image/pic.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="admin.css">
+</head>
+<body class="admin-body">
+
+<div id="loginScreen" class="login-screen">
+  <form id="loginForm" class="login-card">
+    <img src="image/pic.png" class="login-logo" alt="Fast Food House">
+    <h1>Admin Panel</h1>
+    <p>Fast Food House boshqaruv paneliga kirish</p>
+    <input type="password" id="loginPassword" placeholder="Parolni kiriting" autocomplete="current-password" required>
+    <button type="submit" class="btn btn-gold">Kirish</button>
+    <div class="login-error" id="loginError"></div>
+    <div class="login-hint">Demo parol: ffh2026</div>
+  </form>
+</div>
+
+<div id="adminApp" class="admin-app hidden">
+  <aside class="admin-sidebar">
+    <div class="admin-brand">
+      <img src="image/pic.png" alt="logo">
+      <div>
+        <strong>FAST FOOD HOUSE</strong>
+        <span>ADMIN PANEL</span>
+      </div>
+    </div>
+
+    <nav class="admin-nav" id="adminNav">
+      <button class="admin-nav-btn active" data-tab="overview">📊 Umumiy ko'rinish</button>
+      <button class="admin-nav-btn" data-tab="hero">🖼️ Bosh ekran</button>
+      <button class="admin-nav-btn" data-tab="features">✨ Xususiyatlar</button>
+      <button class="admin-nav-btn" data-tab="menu">🍔 Menyu</button>
+      <button class="admin-nav-btn" data-tab="categories">🗂️ Kategoriyalar</button>
+      <button class="admin-nav-btn" data-tab="promo">📣 Bannerlar</button>
+      <button class="admin-nav-btn" data-tab="footer">📍 Footer / Aloqa</button>
+    </nav>
+
+    <div class="admin-sidebar-foot">
+      <a href="index.html" target="_blank" class="btn admin-view-site">Saytni ko'rish ↗</a>
+      <button id="logoutBtn" class="admin-logout">Chiqish</button>
+    </div>
+  </aside>
+
+  <main class="admin-main">
+    <div class="admin-topbar">
+      <h1 id="tabTitle">Umumiy ko'rinish</h1>
+      <div class="admin-topbar-actions">
+        <button id="resetBtn" class="btn btn-outline-dark">Standart holatga qaytarish</button>
+      </div>
+    </div>
+
+    <div id="tabContent" class="admin-content"></div>
+  </main>
+</div>
+
+<div id="adminOverlay" class="admin-overlay">
+  <div class="admin-panel">
+    <button class="admin-panel-close" id="panelClose">✕</button>
+    <div id="panelBody"></div>
+  </div>
+</div>
+
+<div id="adminToast" class="admin-toast"></div>
+
+<script src="data.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>
