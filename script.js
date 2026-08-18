@@ -80,7 +80,7 @@ function renderMenu() {
         <p>${esc(item.desc)}</p>
         <div class="row">
           <span class="price">${formatPrice(item.price)}</span>
-          <button class="add-btn" data-name="${esc(item.name)}">+</button>
+          <button class="add-btn" data-id="${item.id}" data-name="${esc(item.name)}">+</button>
         </div>
       </div>
     </div>
@@ -99,7 +99,7 @@ function renderPromo() {
       <span class="amount">${esc(p.comboPrice)}</span>
       <span class="label">${esc(p.comboPriceLabel)}</span>
     </div>
-    <a href="#" class="btn btn-gold" style="width:fit-content;">${esc(p.comboBtn)}</a>
+    <button class="btn btn-gold open-cart-btn" style="width:fit-content;">${esc(p.comboBtn)}</button>
   `;
 
   const about = document.getElementById('about');
@@ -155,7 +155,7 @@ function renderFooter() {
 
     <div class="reveal" style="--d:.3s">
       <h5>Buyurtma bering</h5>
-      <div class="order-box">
+      <div class="order-box open-cart-btn">
         <img src="image/Доставка.png" alt="Yetkazib berish">
         <div>
           <div class="t1">${esc(f.orderLabel)}</div>
@@ -229,20 +229,188 @@ categoryPills?.addEventListener('click', (e) => {
   });
 });
 
-/* ===== Add-to-cart toast (event delegation, works for dynamic cards) ===== */
+/* ===== Toast ===== */
 const toast = document.getElementById('toast');
 const toastText = document.getElementById('toastText');
 let toastTimer;
 
-document.body.addEventListener('click', (e) => {
-  const btn = e.target.closest('.add-btn');
-  if (!btn) return;
-  const name = btn.dataset.name || 'Taom';
-  toastText.textContent = `${name} savatga qo'shildi`;
+function showToast(msg, duration) {
+  toastText.textContent = msg;
   toast.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), duration || 2200);
+}
+
+/* ===== Cart ===== */
+const CART_KEY = 'ffh_cart_v1';
+
+function loadCart() {
+  try {
+    const raw = localStorage.getItem(CART_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) { return []; }
+}
+
+let cart = loadCart();
+
+function saveCart() {
+  localStorage.setItem(CART_KEY, JSON.stringify(cart));
+}
+
+function cartTotal() {
+  return cart.reduce((sum, c) => sum + c.price * c.qty, 0);
+}
+
+function cartCount() {
+  return cart.reduce((sum, c) => sum + c.qty, 0);
+}
+
+const cartBadge = document.getElementById('cartBadge');
+function updateCartBadge() {
+  if (!cartBadge) return;
+  const count = cartCount();
+  cartBadge.textContent = count;
+  cartBadge.style.display = count > 0 ? 'flex' : 'none';
+}
+
+function addToCart(id) {
+  const item = data.menu.find(m => m.id === id);
+  if (!item) return;
+  const existing = cart.find(c => c.id === id);
+  if (existing) existing.qty += 1;
+  else cart.push({ id: item.id, name: item.name, price: item.price, image: item.image, qty: 1 });
+  saveCart();
+  updateCartBadge();
+}
+
+function changeQty(id, delta) {
+  const line = cart.find(c => c.id === id);
+  if (!line) return;
+  line.qty += delta;
+  if (line.qty <= 0) cart = cart.filter(c => c.id !== id);
+  saveCart();
+  updateCartBadge();
+  renderCartPanel();
+}
+
+function removeFromCart(id) {
+  cart = cart.filter(c => c.id !== id);
+  saveCart();
+  updateCartBadge();
+  renderCartPanel();
+}
+
+const cartOverlay = document.getElementById('cartOverlay');
+const cartItemsEl = document.getElementById('cartItems');
+const cartFootEl = document.getElementById('cartFoot');
+
+function renderCartPanel() {
+  if (!cart.length) {
+    cartItemsEl.innerHTML = `<div class="cart-empty">Savat bo'sh.<br>Menyudan mahsulot tanlang 🍔</div>`;
+    cartFootEl.innerHTML = '';
+    return;
+  }
+  cartItemsEl.innerHTML = cart.map(c => `
+    <div class="cart-item">
+      <img src="image/${esc(c.image)}" alt="${esc(c.name)}">
+      <div class="cart-item-info">
+        <div class="cart-item-name">${esc(c.name)}</div>
+        <div class="cart-item-price">${formatPrice(c.price)}</div>
+      </div>
+      <div class="cart-qty">
+        <button data-qty-minus="${c.id}" aria-label="Kamaytirish">−</button>
+        <span>${c.qty}</span>
+        <button data-qty-plus="${c.id}" aria-label="Ko'paytirish">+</button>
+      </div>
+      <button class="cart-remove" data-remove="${c.id}" aria-label="O'chirish">✕</button>
+    </div>
+  `).join('');
+
+  cartFootEl.innerHTML = `
+    <div class="cart-total-row"><span>Jami</span><span class="cart-total-amount">${formatPrice(cartTotal())}</span></div>
+    <button class="btn btn-gold cart-checkout-btn" id="checkoutBtn">Buyurtma berish</button>
+  `;
+}
+
+function openCart() {
+  renderCartPanel();
+  cartOverlay?.classList.add('show');
+}
+function closeCart() {
+  cartOverlay?.classList.remove('show');
+}
+
+document.getElementById('cartFab')?.addEventListener('click', openCart);
+document.getElementById('cartClose')?.addEventListener('click', closeCart);
+cartOverlay?.addEventListener('click', (e) => { if (e.target === cartOverlay) closeCart(); });
+
+cartItemsEl?.addEventListener('click', (e) => {
+  const plus = e.target.closest('[data-qty-plus]');
+  const minus = e.target.closest('[data-qty-minus]');
+  const remove = e.target.closest('[data-remove]');
+  if (plus) changeQty(Number(plus.dataset.qtyPlus), 1);
+  else if (minus) changeQty(Number(minus.dataset.qtyMinus), -1);
+  else if (remove) removeFromCart(Number(remove.dataset.remove));
 });
+
+cartFootEl?.addEventListener('click', (e) => {
+  if (e.target.closest('#checkoutBtn')) submitOrder();
+});
+
+function submitOrder() {
+  if (!cart.length) return;
+  const order = {
+    items: cart.map(c => ({ name: c.name, qty: c.qty, price: c.price })),
+    total: cartTotal(),
+    ts: new Date().toISOString()
+  };
+
+  const tg = window.Telegram && window.Telegram.WebApp;
+  if (tg && typeof tg.sendData === 'function' && tg.initData) {
+    tg.sendData(JSON.stringify(order));
+    showToast("Buyurtma yuborildi! ✅", 2600);
+    cart = [];
+    saveCart();
+    updateCartBadge();
+    closeCart();
+    setTimeout(() => { if (tg.close) tg.close(); }, 900);
+  } else {
+    cartFootEl.innerHTML = `
+      <div class="cart-confirm">
+        ✅ Buyurtmangiz qabul qilindi!<br>
+        <small>Buyurtmani to'g'ridan-to'g'ri yuborish uchun saytni bizning Telegram botimiz orqali oching.</small>
+      </div>
+    `;
+    cart = [];
+    saveCart();
+    updateCartBadge();
+    cartItemsEl.innerHTML = `<div class="cart-empty">Savat bo'sh.</div>`;
+  }
+}
+
+updateCartBadge();
+
+/* ===== Add-to-cart + open-cart buttons (event delegation) ===== */
+document.body.addEventListener('click', (e) => {
+  const addBtn = e.target.closest('.add-btn');
+  if (addBtn) {
+    const id = Number(addBtn.dataset.id);
+    addToCart(id);
+    showToast(`${addBtn.dataset.name || 'Taom'} savatga qo'shildi`);
+    return;
+  }
+  if (e.target.closest('.open-cart-btn')) {
+    openCart();
+  }
+});
+
+/* ===== Telegram Mini App init ===== */
+if (window.Telegram && window.Telegram.WebApp) {
+  try {
+    window.Telegram.WebApp.ready();
+    window.Telegram.WebApp.expand();
+  } catch (e) { /* not running inside Telegram */ }
+}
 
 /* ===== Scroll-reveal ===== */
 const revealObserver = new IntersectionObserver((entries) => {

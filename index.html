@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
 
@@ -35,9 +36,9 @@
     </nav>
 
     <div class="header-cta">
-      <a href="#menu" class="btn btn-gold">
+      <button class="btn btn-gold open-cart-btn" id="headerOrderBtn">
         <span class="long">🛍️</span> BUYURTMA BERISH
-      </a>
+      </button>
       <button class="burger-toggle" id="burgerToggle" aria-label="Menyu">☰</button>
     </div>
   </div>
@@ -86,6 +87,21 @@
 <div id="toast"><span class="dot"></span><span id="toastText">Savatga qo'shildi</span></div>
 
 <button id="backToTop" aria-label="Yuqoriga qaytish">↑</button>
+
+<button id="cartFab" aria-label="Savat">
+  🛒<span class="cart-badge" id="cartBadge">0</span>
+</button>
+
+<div class="cart-overlay" id="cartOverlay">
+  <div class="cart-panel">
+    <div class="cart-panel-head">
+      <h3>Savat</h3>
+      <button class="cart-close" id="cartClose">✕</button>
+    </div>
+    <div class="cart-items" id="cartItems"></div>
+    <div class="cart-foot" id="cartFoot"></div>
+  </div>
+</div>
 
 <script src="data.js"></script>
 <script src="script.js"></script>

@@ -51,13 +51,51 @@ async function sendMenu(chatId) {
   });
 }
 
+function formatPrice(n) {
+  return (Number(n) || 0).toLocaleString('ru-RU').replace(/,/g, ' ') + " so'm";
+}
+
+function buildOrderSummary(order, from) {
+  const lines = order.items.map(it => `• ${it.name} × ${it.qty} — ${formatPrice(it.price * it.qty)}`);
+  const who = from ? `\n👤 ${[from.first_name, from.last_name].filter(Boolean).join(' ')}${from.username ? ' (@' + from.username + ')' : ''}` : '';
+  return `${lines.join('\n')}\n\n💰 Jami: *${formatPrice(order.total)}*${who}`;
+}
+
+async function handleOrder(msg) {
+  const chatId = msg.chat.id;
+  let order;
+  try {
+    order = JSON.parse(msg.web_app_data.data);
+  } catch (e) {
+    await call('sendMessage', { chat_id: chatId, text: "Buyurtmani o'qishda xatolik yuz berdi." });
+    return;
+  }
+  if (!order.items || !order.items.length) return;
+
+  await call('sendMessage', {
+    chat_id: chatId,
+    text: `✅ *Buyurtmangiz qabul qilindi!*\n\n${buildOrderSummary(order)}\n\nTez orada siz bilan bog'lanamiz. Rahmat! 🙏`,
+    parse_mode: 'Markdown'
+  });
+
+  if (config.adminChatId) {
+    await call('sendMessage', {
+      chat_id: config.adminChatId,
+      text: `🆕 *Yangi buyurtma!*\n\n${buildOrderSummary(order, msg.from)}`,
+      parse_mode: 'Markdown'
+    });
+  }
+}
+
 async function handleUpdate(update) {
   const msg = update.message;
   if (!msg || !msg.chat) return;
   const chatId = msg.chat.id;
   const text = (msg.text || '').trim();
 
-  if (text === '/start' || text === '/menu') {
+  if (msg.web_app_data) {
+    await handleOrder(msg);
+  } else if (text === '/start' || text === '/menu') {
     // Persistent blue "Menu" button next to the message box, opens the site directly.
     if (msg.chat.type === 'private') {
       await call('setChatMenuButton', {
@@ -66,10 +104,16 @@ async function handleUpdate(update) {
       });
     }
     await sendMenu(chatId);
+  } else if (text === '/myid') {
+    await call('sendMessage', {
+      chat_id: chatId,
+      text: `Sizning chat ID'ingiz: \`${chatId}\`\n\nBuyurtma bildirishnomalarini shu chatga olish uchun ushbu ID'ni bot/config.json faylidagi "adminChatId" maydoniga qo'ying.`,
+      parse_mode: 'Markdown'
+    });
   } else if (text === '/help') {
     await call('sendMessage', {
       chat_id: chatId,
-      text: "/start — menyuni ochish\n/menu — menyuni qayta ko'rsatish"
+      text: "/start — menyuni ochish\n/menu — menyuni qayta ko'rsatish\n/myid — chat ID'ingizni olish"
     });
   } else {
     await sendMenu(chatId);
