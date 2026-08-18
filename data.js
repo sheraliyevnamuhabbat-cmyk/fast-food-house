@@ -5,7 +5,8 @@
 
 const STORAGE_KEY = 'ffh_site_data_v1';
 const AUTH_KEY = 'ffh_admin_auth';
-const ADMIN_PASSWORD = 'ffh2026';
+const ADMIN_EMAIL = 'sheraliyevnamuhabbat@gmail.com';
+const ADMIN_PASSWORD = 'Admin@FastFood2026!';
 
 const IMAGE_LIBRARY = [
   '4sir.jpg', 'Chizkeyk.jpg', 'Sarimsoq.webp', 'achchiq.jpg', 'asal.webp',

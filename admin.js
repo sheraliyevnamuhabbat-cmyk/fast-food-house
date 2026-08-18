@@ -32,17 +32,19 @@ function showLogin() {
   adminApp.classList.add('hidden');
   loginScreen.classList.remove('hidden');
   document.getElementById('loginPassword').value = '';
+  document.getElementById('loginEmail').value = '';
 }
 
 loginForm.addEventListener('submit', (e) => {
   e.preventDefault();
-  const val = document.getElementById('loginPassword').value;
-  if (val === ADMIN_PASSWORD) {
+  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  const pass = document.getElementById('loginPassword').value;
+  if (email === ADMIN_EMAIL.toLowerCase() && pass === ADMIN_PASSWORD) {
     sessionStorage.setItem(AUTH_KEY, 'true');
     loginError.textContent = '';
     showApp();
   } else {
-    loginError.textContent = "Parol noto'g'ri. Qayta urinib ko'ring.";
+    loginError.textContent = "Email yoki parol noto'g'ri. Qayta urinib ko'ring.";
   }
 });
 
